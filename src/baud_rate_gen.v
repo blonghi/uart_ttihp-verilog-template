@@ -1,7 +1,7 @@
 
 `default_nettype none
 
- module baud_rate_gen(
+ module baud_rate_gen (
     input clk, 
     output wire tx_enb,
     output wire rx_enb);

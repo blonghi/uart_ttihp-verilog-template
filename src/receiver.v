@@ -32,6 +32,38 @@ module receiver (
 
             case (state)
 
+            IDLE : begin
+
+                if (rx == 0)
+                    state <= START;
+            end
+
+            START : begin
+                bit_index <= 0;
+
+                if (rx_enb) 
+                    state <= DATA;
+            end
+
+            DATA : begin
+                if  (rx_enb) begin
+                    shift_reg[bit_index] <= rx;
+                    
+                    if (bit_index == 7) 
+                        state <= STOP; 
+                    else
+                        bit_index <= bit_index + 1;
+                end
+            end
+
+            STOP : begin 
+                rx_data <= shift_reg;
+                rx_valid <= 1; 
+
+                if (rx_enb)
+                    state <= IDLE;
+            end
+
             endcase
         end
     end
