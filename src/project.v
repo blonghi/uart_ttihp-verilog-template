@@ -37,6 +37,7 @@ module tt_um_uart (
   baudrate_generator u_baudrate_generator (
     //inputs
     .clk(clk),
+    .rst_n(rst_n),
 
     //outputs
     .rx_enb(rx_enb),

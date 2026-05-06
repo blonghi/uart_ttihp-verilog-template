@@ -3,6 +3,7 @@
 
  module baud_rate_gen (
     input clk, 
+    input rst_n,
     output wire tx_enb,
     output wire rx_enb);
 
@@ -11,7 +12,9 @@
 
     always@(posedge clk)
         begin 
-            if (rx_counter == 325)
+            if (rst_n)
+                rx_counter = 0;
+            else if (rx_counter == 325)
                 rx_counter = 0;
             else 
                 rx_counter = rx_counter + 1'b1;
@@ -19,7 +22,9 @@
 
     always@(posedge clk)
         begin 
-            if (tx_counter == 5208)
+            if (rst_n)
+                tx_counter = 0; 
+            else if (tx_counter == 5208)
                 tx_counter = 0;
             else 
                 tx_counter = tx_counter + 1'b1;
