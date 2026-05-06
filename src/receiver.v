@@ -62,6 +62,7 @@ module receiver (
 
                 if (rx_enb)
                     state <= IDLE;
+                    rx_valid <= 0;
             end
 
             endcase

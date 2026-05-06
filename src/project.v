@@ -32,7 +32,10 @@ module tt_um_uart (
   assign tx_data = ui_in;
 
   // List all unused inputs to prevent warnings
-  //wire _unused = &{ena, clk, rst_n, 1'b0};
+  wire _unused = &{uio_in, uio_out, uio_oe, ena};
+
+  assign uio_out = 0;
+  assign uio_oe = 0;
 
     baud_rate_gen u_baudrate_generator (
     //inputs
@@ -48,7 +51,7 @@ module tt_um_uart (
     //inputs 
     .clk(clk), 
     .rst_n(rst_n), 
-    .wr_enb(wr_enb), //where does this come from? 
+    .wr_enb(rx_valid),
     .tx_enb(tx_enb),
     .tx_data(tx_data),
 
