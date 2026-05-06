@@ -34,7 +34,7 @@ module tt_um_uart (
   // List all unused inputs to prevent warnings
   //wire _unused = &{ena, clk, rst_n, 1'b0};
 
-  baudrate_generator u_baudrate_generator (
+    baud_rate_gen u_baudrate_generator (
     //inputs
     .clk(clk),
     .rst_n(rst_n),
