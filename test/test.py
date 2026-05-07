@@ -4,7 +4,7 @@ Known RTL issues discovered during repository review:
 1) In src/baud_rate_gen.v, both counters reset when rst_n == 1 (polarity bug).
 2) In src/receiver.v STOP state, rx_valid is set to 1 and then immediately set to 0.
 3) In src/project.v, transmitter output is internal (wire rx) and not mapped to uo_out bit.
-4) In src/project.v, there is no external RX pin mapping from ui_in[x] into receiver.rx.
+4) src/project.v implements an internal UART loop: ui_in loads transmitter data directly.
 
 Because of (2), loopback through receiver->rx_valid->transmitter is expected to fail until RTL is fixed.
 """
@@ -26,10 +26,8 @@ TX_BAUD_CYCLES = 5208
 # rx_counter compares against 325 in baud_rate_gen.v -> 50_000_000 / 325 ~= 153846 sample ticks
 RX_BAUD_CYCLES = 325
 
-# From Step 1 source review:
-# - No ui_in bit is wired to receiver.rx in project.v (RX external pin mapping is missing).
-RX_UI_BIT = None
-# - No uo_out bit is wired to transmitter.tx in project.v (TX external pin mapping is missing).
+# From source review:
+# - No uo_out bit is wired to transmitter.tx in project.v (TX is internal only).
 TX_UO_BIT = None
 
 
@@ -58,8 +56,7 @@ async def reset_dut(dut):
     dut.ena.value = 1
     dut.uio_in.value = 0
 
-    # Since RX is not mapped to any ui_in bit in current RTL, initialize ui_in to all zeros.
-    # If RX were mapped, we would set that specific bit HIGH for idle here.
+    # ui_in is the parallel byte source loaded into the transmitter in project.v.
     dut.ui_in.value = 0
 
     # Assert reset low for 5 full cycles.
@@ -71,18 +68,15 @@ async def reset_dut(dut):
     await ClockCycles(dut.clk, 2)
 
 
-def set_rx_line(dut, value):
-    """Drive the UART RX line while preserving unrelated bits/signals.
+async def start_internal_loopback(dut, byte_val):
+    """Kick off one internal loopback transfer by loading ui_in.
 
-    Requested behavior is to touch only the RX bit in ui_in, but current RTL has no such mapping.
-    So this function drives the internal top-module wire 'rx' (project.v) directly for now.
+    In this RTL, ui_in is wired to tx_data and transmitter starts when wr_enb (rx_valid) pulses.
     """
-    if int(value) not in (0, 1):
-        raise ValueError("RX value must be 0 or 1")
-
-    # Because ui_in[x] is not connected to receiver.rx, we drive the internal net.
-    # This keeps test intent aligned with real RTL connectivity until pin mapping is fixed.
-    dut.dut.rx.value = int(value)
+    # Load the byte that transmitter will serialize.
+    dut.ui_in.value = byte_val & 0xFF
+    # Give sequential logic a couple cycles to capture and progress.
+    await ClockCycles(dut.clk, 2)
 
 
 def get_tx_line(dut):
@@ -93,34 +87,6 @@ def get_tx_line(dut):
     """
     # If top-level TX mapping is added later, replace with uo_out[TX_UO_BIT].
     return int(dut.dut.u_transmitter.tx.value)
-
-
-async def uart_send_byte(dut, byte_val):
-    """Bit-bang one full UART frame onto RX: start, 8 LSB-first data bits, stop.
-
-    Frame format: 1 start bit (0), 8 data bits (LSB first), 1 stop bit (1).
-    Each bit is held for TX_BAUD_CYCLES clock cycles as requested.
-    """
-    # idle  start  b0 b1 b2 b3 b4 b5 b6 b7  stop  idle
-    #  1     0     1  0  1  0  1  0  1  0    1     1   (example for 0x55)
-
-    # Keep the line high before frame start (UART idle level).
-    set_rx_line(dut, 1)
-    await ClockCycles(dut.clk, TX_BAUD_CYCLES)
-
-    # Start bit: drive LOW for one bit time.
-    set_rx_line(dut, 0)
-    await ClockCycles(dut.clk, TX_BAUD_CYCLES)
-
-    # Data bits: drive least-significant bit first.
-    for bit_index in range(8):
-        bit_val = (byte_val >> bit_index) & 0x1
-        set_rx_line(dut, bit_val)
-        await ClockCycles(dut.clk, TX_BAUD_CYCLES)
-
-    # Stop bit: drive HIGH for one bit time.
-    set_rx_line(dut, 1)
-    await ClockCycles(dut.clk, TX_BAUD_CYCLES)
 
 
 async def uart_recv_byte(dut, timeout_cycles=200000):
@@ -155,8 +121,8 @@ async def uart_recv_byte(dut, timeout_cycles=200000):
 
 
 async def uart_loopback(dut, byte_val):
-    """Send one byte on RX and receive one byte on TX."""
-    await uart_send_byte(dut, byte_val)
+    """Load ui_in and receive one serialized byte from transmitter TX."""
+    await start_internal_loopback(dut, byte_val)
     return await uart_recv_byte(dut)
 
 
@@ -258,9 +224,9 @@ async def test_no_output_during_receive(dut):
     await setup_clock(dut)
     await reset_dut(dut)
 
-    # Start frame manually and inspect TX while receive is in progress.
+    # Start internal transfer and inspect TX while receiver/transmitter progress.
     tx_before = get_tx_line(dut)
-    send_task = cocotb.start_soon(uart_send_byte(dut, 0x3C))
+    send_task = cocotb.start_soon(start_internal_loopback(dut, 0x3C))
     await ClockCycles(dut.clk, TX_BAUD_CYCLES * 4)
     tx_mid = get_tx_line(dut)
     await send_task
