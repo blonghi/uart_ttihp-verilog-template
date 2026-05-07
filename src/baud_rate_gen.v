@@ -12,7 +12,7 @@
 
     always@(posedge clk)
         begin 
-            if (rst_n)
+            if (!rst_n)
                 rx_counter <= 0;
             else if (rx_counter == 325)
                 rx_counter <= 0;
@@ -22,7 +22,7 @@
 
     always@(posedge clk)
         begin 
-            if (rst_n)
+            if (!rst_n)
                 tx_counter <= 0; 
             else if (tx_counter == 5208)
                 tx_counter <= 0;

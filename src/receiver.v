@@ -27,6 +27,7 @@ module receiver (
         if (!rst_n) begin
             state <= IDLE;
             rx_valid <= 0;
+            rx_data <= 0;
 
         end else begin
 

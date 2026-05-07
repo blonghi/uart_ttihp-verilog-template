@@ -72,7 +72,7 @@ module tt_um_uart (
   );
 
 
-  assign uo_out = rx_data;
+  assign uo_out = (rx_valid) ? rx_data : 0;
 
 
 
