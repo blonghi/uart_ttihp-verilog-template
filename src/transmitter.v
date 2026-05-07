@@ -28,6 +28,7 @@ module transmitter(
             state <= IDLE;
             tx <= 1;
             bit_index <= 0;
+            shift_reg <= 0;
 
         end else begin
 
@@ -35,6 +36,7 @@ module transmitter(
 
             IDLE : begin
                 tx <= 1;
+                bit_index <= 0;
 
                 if (wr_enb) begin
                     state <= START;

@@ -22,10 +22,8 @@ module tt_um_uart (
 
   wire tx_enb;
   wire [7:0] tx_data;
-  wire tx_valid;
 
   wire rx_enb;
-  wire rx;
   wire [7:0] rx_data;
   wire rx_valid;
 
@@ -56,7 +54,7 @@ module tt_um_uart (
     .tx_data(tx_data),
 
     //outputs
-    .tx(rx)
+    .tx(uo_out[0])
   ); 
 
   receiver u_receiver (
@@ -64,7 +62,7 @@ module tt_um_uart (
     .clk(clk), 
     .rst_n(rst_n), 
     .rx_enb(rx_enb),
-    .rx(rx),
+    .rx(ui_in[0]),
 
     //outputs
     .rx_data(rx_data),
@@ -72,7 +70,7 @@ module tt_um_uart (
   );
 
 
-  assign uo_out = (rx_valid) ? rx_data : 0;
+  assign uo_out[7:1] = 0;
 
 
 
