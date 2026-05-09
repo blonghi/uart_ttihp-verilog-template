@@ -28,12 +28,14 @@ module receiver (
             state <= IDLE;
             rx_valid <= 0;
             rx_data <= 0;
+            shift_reg <= 0;
 
         end else begin
 
             case (state)
 
             IDLE : begin
+                rx_valid <= 0;
 
                 if (rx == 0)
                     state <= START;

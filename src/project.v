@@ -27,7 +27,7 @@ module tt_um_uart (
   wire [7:0] rx_data;
   wire rx_valid;
 
-  assign tx_data = ui_in;
+  reg [7:0] temp;
 
   // List all unused inputs to prevent warnings
   wire _unused = &{uio_in, uio_out, uio_oe, ena};
@@ -49,7 +49,7 @@ module tt_um_uart (
     //inputs 
     .clk(clk), 
     .rst_n(rst_n), 
-    .wr_enb(rx_valid),
+    .wr_enb(1'b1),
     .tx_enb(tx_enb),
     .tx_data(tx_data),
 
