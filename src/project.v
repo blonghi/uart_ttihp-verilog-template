@@ -24,6 +24,7 @@ module tt_um_uart (
   wire [7:0] tx_data;
 
   wire rx_enb;
+  wire rx_sync;
   wire [7:0] rx_data;
   wire rx_valid;
 
@@ -39,6 +40,7 @@ module tt_um_uart (
     //inputs
     .clk(clk),
     .rst_n(rst_n),
+    .rx_sync(rx_sync),
 
     //outputs
     .rx_enb(rx_enb),
@@ -65,6 +67,7 @@ module tt_um_uart (
     .rx(ui_in[0]),
 
     //outputs
+    .rx_sync(rx_sync),
     .rx_data(rx_data),
     .rx_valid(rx_valid)
   );

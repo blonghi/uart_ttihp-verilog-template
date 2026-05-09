@@ -7,6 +7,7 @@ module receiver (
     input rx_enb, // rx baud tick 
     input rx, 
 
+    output reg rx_sync,
     output reg [7:0] rx_data,
     output reg rx_valid
 );
@@ -29,6 +30,7 @@ module receiver (
             rx_valid <= 0;
             rx_data <= 0;
             shift_reg <= 0;
+            rx_sync <= 0;
 
         end else begin
 
@@ -37,12 +39,15 @@ module receiver (
             IDLE : begin
                 rx_valid <= 0;
 
-                if (rx == 0)
+                if (rx == 0) begin
+                    rx_sync <= 1;
                     state <= START;
+                end
             end
 
             START : begin
                 bit_index <= 0;
+                rx_sync <= 0;
 
                 if (rx_enb) 
                     state <= DATA;

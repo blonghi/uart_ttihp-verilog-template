@@ -1,9 +1,9 @@
-
 `default_nettype none
 
  module baud_rate_gen (
     input clk, 
     input rst_n,
+    input rx_sync,
     output wire tx_enb,
     output wire rx_enb);
 
@@ -12,7 +12,7 @@
 
     always@(posedge clk)
         begin 
-            if (!rst_n)
+            if (!rst_n || rx_sync)
                 rx_counter <= 0;
             else if (rx_counter == 325)
                 rx_counter <= 0;
@@ -31,9 +31,6 @@
         end
     
     assign tx_enb = (tx_counter == 0) ? 1'b1 : 1'b0;
-    assign rx_enb = (rx_counter == 0) ? 1'b1 : 1'b0;
+    assign rx_enb = (rx_counter == 162) ? 1'b1 : 1'b0;
 
- endmodule 
-
-
-
+ endmodule

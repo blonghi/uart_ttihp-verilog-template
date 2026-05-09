@@ -5,7 +5,7 @@ from cocotb.triggers import ClockCycles, RisingEdge
 
 CLK_PERIOD_NS = 20
 TX_BAUD_CYCLES = 5208
-RX_BAUD_CYCLES = 325
+RX_BAUD_CYCLES = 326
 
 
 # ---------------------------------------------------------------------------
@@ -32,6 +32,21 @@ def set_rx_pin(dut, bit_val):
     cur = int(dut.ui_in.value)
     cur = (cur & ~0x1) | (bit_val & 0x1)
     dut.ui_in.value = cur
+
+
+def set_wr_enb_pin(dut, bit_val):
+    cur = int(dut.uio_in.value)
+    cur = (cur & ~0x1) | (bit_val & 0x1)
+    dut.uio_in.value = cur
+
+
+async def issue_tx_write(dut, byte_val):
+    assert (byte_val & 1) == 1, "TX byte must have LSB=1 (ui_in[0] RX idle)"
+    dut.ui_in.value = byte_val
+    set_wr_enb_pin(dut, 1)
+    await RisingEdge(dut.clk)
+    set_wr_enb_pin(dut, 0)
+    await RisingEdge(dut.clk)
 
 
 def get_tx_pin(dut):
@@ -304,8 +319,7 @@ async def test_rx_data_stable_while_valid_asserted(dut):
 # ===========================================================================
 # TX PATH TESTS
 # Tests exercise uo_out[0] as the serial TX line, independently of RX data.
-# wr_enb is triggered via rx_valid; RX reception is used only as a trigger
-# mechanism and is not the subject of these assertions.
+# wr_enb is uio_in[0]; tx_data is ui_in (use bytes with bit0=1 so RX stays idle).
 # ===========================================================================
 
 @cocotb.test()
@@ -340,8 +354,7 @@ async def test_tx_starts_after_wr_enb(dut):
     """TX must begin a frame (fall low for start bit) after wr_enb asserts."""
     await setup_clock(dut)
     await reset_dut(dut)
-    await send_uart_frame_on_ui0(dut, 0x55)
-    await wait_for_rx_valid(dut)
+    await issue_tx_write(dut, 0x55)
     await wait_for_tx_start(dut)
 
 
@@ -350,8 +363,7 @@ async def test_tx_start_bit_is_low(dut):
     """The first element of any TX frame must be a logic-low start bit."""
     await setup_clock(dut)
     await reset_dut(dut)
-    await send_uart_frame_on_ui0(dut, 0x55)
-    await wait_for_rx_valid(dut)
+    await issue_tx_write(dut, 0x55)
     start_bit, _, _ = await sample_tx_frame_structure(dut)
     assert start_bit == 0, f"Start bit must be 0, got {start_bit}"
 
@@ -361,8 +373,7 @@ async def test_tx_stop_bit_is_high(dut):
     """The last element of any TX frame must be a logic-high stop bit."""
     await setup_clock(dut)
     await reset_dut(dut)
-    await send_uart_frame_on_ui0(dut, 0x55)
-    await wait_for_rx_valid(dut)
+    await issue_tx_write(dut, 0x55)
     _, _, stop_bit = await sample_tx_frame_structure(dut)
     assert stop_bit == 1, f"Stop bit must be 1, got {stop_bit}"
 
@@ -372,8 +383,7 @@ async def test_tx_transmits_exactly_eight_data_bits(dut):
     """TX frame must contain exactly 8 data bits between start and stop bits."""
     await setup_clock(dut)
     await reset_dut(dut)
-    await send_uart_frame_on_ui0(dut, 0x55)
-    await wait_for_rx_valid(dut)
+    await issue_tx_write(dut, 0x55)
     _, bits, _ = await sample_tx_frame_structure(dut)
     assert len(bits) == 8, f"Expected 8 data bits in TX frame, counted {len(bits)}"
 
@@ -383,8 +393,7 @@ async def test_tx_bit_stable_across_baud_period(dut):
     """Each TX bit must remain stable for the full baud period with no glitches."""
     await setup_clock(dut)
     await reset_dut(dut)
-    await send_uart_frame_on_ui0(dut, 0x55)
-    await wait_for_rx_valid(dut)
+    await issue_tx_write(dut, 0x55)
     await wait_for_tx_start(dut)
     # Advance to quarter-mark of the start bit
     await ClockCycles(dut.clk, TX_BAUD_CYCLES // 4)
@@ -403,8 +412,7 @@ async def test_tx_returns_to_idle_after_frame(dut):
     """TX must return to logic-high idle and hold there after the stop bit."""
     await setup_clock(dut)
     await reset_dut(dut)
-    await send_uart_frame_on_ui0(dut, 0xA5)
-    await wait_for_rx_valid(dut)
+    await issue_tx_write(dut, 0xA5)
     await wait_for_tx_start(dut)
     # Wait for the complete frame: start + 8 data + stop + margin
     await ClockCycles(dut.clk, TX_BAUD_CYCLES * 12)
@@ -417,8 +425,7 @@ async def test_tx_reset_during_frame_forces_idle(dut):
     """Assert reset mid-transmission; TX must immediately return to idle high."""
     await setup_clock(dut)
     await reset_dut(dut)
-    await send_uart_frame_on_ui0(dut, 0x55)
-    await wait_for_rx_valid(dut)
+    await issue_tx_write(dut, 0x55)
     await wait_for_tx_start(dut)
     dut.rst_n.value = 0
     await ClockCycles(dut.clk, 2)
@@ -430,15 +437,10 @@ async def test_tx_reset_during_frame_forces_idle(dut):
 
 @cocotb.test()
 async def test_tx_data_lsb_first_0x55(dut):
-    """TX must serialize 0x55 LSB-first when ui_in is set to 0x55 at load time.
-    Note: because tx_data=ui_in and wr_enb=rx_valid, ui_in must be set before
-    the frame is sent so that the stop-bit state of ui_in[0] matches bit 0 of
-    the intended TX byte.  0x55 (bit0=1) satisfies this constraint."""
+    """TX must serialize 0x55 LSB-first (0x55 has LSB=1 for ui_in[0] idle)."""
     await setup_clock(dut)
     await reset_dut(dut)
-    dut.ui_in.value = 0x55
-    await send_uart_frame_on_ui0(dut, 0x55)
-    await wait_for_rx_valid(dut)
+    await issue_tx_write(dut, 0x55)
     bits, stop_bit = await sample_tx_frame_bits(dut)
     assert bits == bits_lsb_first(0x55), \
         f"Expected LSB-first 0x55, got {bits}"
@@ -447,12 +449,10 @@ async def test_tx_data_lsb_first_0x55(dut):
 
 @cocotb.test()
 async def test_tx_data_lsb_first_0xFF(dut):
-    """TX must serialize 0xFF LSB-first when ui_in is set to 0xFF at load time."""
+    """TX must serialize 0xFF LSB-first (0xFF has LSB=1 for ui_in[0] idle)."""
     await setup_clock(dut)
     await reset_dut(dut)
-    dut.ui_in.value = 0xFF
-    await send_uart_frame_on_ui0(dut, 0xFF)
-    await wait_for_rx_valid(dut)
+    await issue_tx_write(dut, 0xFF)
     bits, stop_bit = await sample_tx_frame_bits(dut)
     assert bits == bits_lsb_first(0xFF), \
         f"Expected LSB-first 0xFF, got {bits}"
