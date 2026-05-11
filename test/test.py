@@ -183,8 +183,9 @@ async def test_rx_valid_asserts_after_complete_frame(dut):
     """A complete UART frame on RX must cause rx_valid to assert."""
     await setup_clock(dut)
     await reset_dut(dut)
+    t = cocotb.start_soon(wait_for_rx_valid(dut))
     await send_uart_frame_on_ui0(dut, 0x55)
-    await wait_for_rx_valid(dut)
+    await t
 
 
 @cocotb.test()
@@ -192,8 +193,9 @@ async def test_rx_valid_deasserts_after_frame(dut):
     """rx_valid must pulse high and then deassert; it must not remain stuck."""
     await setup_clock(dut)
     await reset_dut(dut)
+    t = cocotb.start_soon(wait_for_rx_valid_rise(dut))
     await send_uart_frame_on_ui0(dut, 0x5A)
-    await wait_for_rx_valid_rise(dut)
+    await t
     await ClockCycles(dut.clk, RX_BAUD_CYCLES * 3)
     assert int(dut.dut.rx_valid.value) == 0, \
         "rx_valid must deassert after frame completion"

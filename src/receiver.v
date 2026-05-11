@@ -66,8 +66,10 @@ module receiver (
 
             STOP : begin 
                 if (rx_enb) begin
-                    rx_data <= shift_reg;
-                    rx_valid <= 1;
+                    if (rx == 1'b1) begin
+                        rx_data <= shift_reg;
+                        rx_valid <= 1;
+                    end
                     state <= IDLE;
                 end
             end

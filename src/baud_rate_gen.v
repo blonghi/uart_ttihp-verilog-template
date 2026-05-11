@@ -31,6 +31,6 @@
         end
     
     assign tx_enb = (tx_counter == 0) ? 1'b1 : 1'b0;
-    assign rx_enb = (rx_counter == 162) ? 1'b1 : 1'b0;
+    assign rx_enb = (rx_counter == 163) ? 1'b1 : 1'b0;
 
  endmodule

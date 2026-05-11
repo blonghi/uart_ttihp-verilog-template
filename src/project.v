@@ -20,8 +20,9 @@ module tt_um_uart (
 
   
 
+  wire wr_enb = uio_in[0];
   wire tx_enb;
-  wire [7:0] tx_data;
+  wire [7:0] tx_data = ui_in;
 
   wire rx_enb;
   wire rx_sync;
@@ -31,12 +32,12 @@ module tt_um_uart (
   reg [7:0] temp;
 
   // List all unused inputs to prevent warnings
-  wire _unused = &{uio_in, uio_out, uio_oe, ena};
+  wire _unused = &{uio_in[7:1], uio_out, uio_oe, ena};
 
   assign uio_out = 0;
   assign uio_oe = 0;
 
-    baud_rate_gen u_baudrate_generator (
+  baud_rate_gen u_baudrate_generator (
     //inputs
     .clk(clk),
     .rst_n(rst_n),
@@ -51,7 +52,7 @@ module tt_um_uart (
     //inputs 
     .clk(clk), 
     .rst_n(rst_n), 
-    .wr_enb(1'b1),
+    .wr_enb(wr_enb),
     .tx_enb(tx_enb),
     .tx_data(tx_data),
 
@@ -74,7 +75,6 @@ module tt_um_uart (
 
 
   assign uo_out[7:1] = 0;
-
 
 
 
