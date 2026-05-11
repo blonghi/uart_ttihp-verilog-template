@@ -121,10 +121,13 @@ async def send_frame_and_wait_rx_valid_rise(dut, byte_val):
 # ---------------------------------------------------------------------------
 
 async def wait_for_tx_start(dut, timeout_cycles=200000):
+    prev = get_tx_pin(dut)
     for _ in range(timeout_cycles):
-        if get_tx_pin(dut) == 0:
-            return
         await RisingEdge(dut.clk)
+        cur = get_tx_pin(dut)
+        if prev == 1 and cur == 0:
+            return
+        prev = cur
     assert False, "Timeout waiting for TX start bit on uo_out[0]"
 
 
