@@ -104,6 +104,18 @@ async def wait_for_rx_valid_rise(dut, timeout_cycles=200000):
     assert False, "Timeout waiting for rx_valid rising edge"
 
 
+async def send_frame_and_wait_rx_valid(dut, byte_val):
+    t = cocotb.start_soon(wait_for_rx_valid(dut))
+    await send_uart_frame_on_ui0(dut, byte_val)
+    await t
+
+
+async def send_frame_and_wait_rx_valid_rise(dut, byte_val):
+    t = cocotb.start_soon(wait_for_rx_valid_rise(dut))
+    await send_uart_frame_on_ui0(dut, byte_val)
+    await t
+
+
 # ---------------------------------------------------------------------------
 # TX observation helpers
 # ---------------------------------------------------------------------------
@@ -215,9 +227,10 @@ async def test_rx_valid_not_asserted_before_stop_bit(dut):
         await ClockCycles(dut.clk, RX_BAUD_CYCLES)
     assert int(dut.dut.rx_valid.value) == 0, \
         "rx_valid must not assert before the stop bit is driven"
+    t = cocotb.start_soon(wait_for_rx_valid(dut))
     set_rx_pin(dut, 1)  # stop bit
     await ClockCycles(dut.clk, RX_BAUD_CYCLES)
-    await wait_for_rx_valid(dut)
+    await t
 
 
 @cocotb.test()
@@ -225,8 +238,7 @@ async def test_rx_data_pattern_0x55(dut):
     """Receiver must correctly decode 0x55 (alternating bits, LSB=1)."""
     await setup_clock(dut)
     await reset_dut(dut)
-    await send_uart_frame_on_ui0(dut, 0x55)
-    await wait_for_rx_valid(dut)
+    await send_frame_and_wait_rx_valid(dut, 0x55)
     assert get_rx_data(dut) == 0x55, f"Expected rx_data=0x55, got {get_rx_data(dut):#04x}"
 
 
@@ -235,8 +247,7 @@ async def test_rx_data_pattern_0xAA(dut):
     """Receiver must correctly decode 0xAA (alternating bits, LSB=0)."""
     await setup_clock(dut)
     await reset_dut(dut)
-    await send_uart_frame_on_ui0(dut, 0xAA)
-    await wait_for_rx_valid(dut)
+    await send_frame_and_wait_rx_valid(dut, 0xAA)
     assert get_rx_data(dut) == 0xAA, \
         f"Expected rx_data=0xAA, got {get_rx_data(dut):#04x}"
 
@@ -246,8 +257,7 @@ async def test_rx_data_pattern_0x00(dut):
     """Receiver must correctly decode 0x00 (all-zero payload)."""
     await setup_clock(dut)
     await reset_dut(dut)
-    await send_uart_frame_on_ui0(dut, 0x00)
-    await wait_for_rx_valid(dut)
+    await send_frame_and_wait_rx_valid(dut, 0x00)
     assert get_rx_data(dut) == 0x00, \
         f"Expected rx_data=0x00, got {get_rx_data(dut):#04x}"
 
@@ -257,8 +267,7 @@ async def test_rx_data_pattern_0xFF(dut):
     """Receiver must correctly decode 0xFF (all-one payload)."""
     await setup_clock(dut)
     await reset_dut(dut)
-    await send_uart_frame_on_ui0(dut, 0xFF)
-    await wait_for_rx_valid(dut)
+    await send_frame_and_wait_rx_valid(dut, 0xFF)
     assert get_rx_data(dut) == 0xFF, \
         f"Expected rx_data=0xFF, got {get_rx_data(dut):#04x}"
 
@@ -268,8 +277,7 @@ async def test_rx_data_pattern_0x3C(dut):
     """Receiver must correctly decode 0x3C (mixed bit pattern)."""
     await setup_clock(dut)
     await reset_dut(dut)
-    await send_uart_frame_on_ui0(dut, 0x3C)
-    await wait_for_rx_valid(dut)
+    await send_frame_and_wait_rx_valid(dut, 0x3C)
     assert get_rx_data(dut) == 0x3C, \
         f"Expected rx_data=0x3C, got {get_rx_data(dut):#04x}"
 
@@ -279,8 +287,7 @@ async def test_rx_data_pattern_0xA5(dut):
     """Receiver must correctly decode 0xA5 (mixed bit pattern)."""
     await setup_clock(dut)
     await reset_dut(dut)
-    await send_uart_frame_on_ui0(dut, 0xA5)
-    await wait_for_rx_valid(dut)
+    await send_frame_and_wait_rx_valid(dut, 0xA5)
     assert get_rx_data(dut) == 0xA5, \
         f"Expected rx_data=0xA5, got {get_rx_data(dut):#04x}"
 
@@ -292,8 +299,7 @@ async def test_rx_back_to_back_frames(dut):
     await reset_dut(dut)
     patterns = [0x12, 0x34, 0x56, 0x78]
     for byte_val in patterns:
-        await send_uart_frame_on_ui0(dut, byte_val)
-        await wait_for_rx_valid(dut)
+        await send_frame_and_wait_rx_valid(dut, byte_val)
         assert get_rx_data(dut) == byte_val, (
             f"Back-to-back RX mismatch for {byte_val:#04x}: "
             f"got {get_rx_data(dut):#04x}"
@@ -306,8 +312,7 @@ async def test_rx_data_stable_while_valid_asserted(dut):
     """rx_data must hold its value for the duration that rx_valid is asserted."""
     await setup_clock(dut)
     await reset_dut(dut)
-    await send_uart_frame_on_ui0(dut, 0x71)
-    await wait_for_rx_valid_rise(dut)
+    await send_frame_and_wait_rx_valid_rise(dut, 0x71)
     captured = get_rx_data(dut)
     assert captured == 0x71, f"Initial rx_data mismatch: expected 0x71, got {captured:#04x}"
     for _ in range(RX_BAUD_CYCLES):
