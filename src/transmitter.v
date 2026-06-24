@@ -38,7 +38,7 @@ module transmitter(
                 tx <= 1;
                 bit_index <= 0;
 
-                if (wr_enb) begin
+                if (wr_enb) begin // not checking if rx data is valid before transmitting, can transmit garbadge X's
                     state <= START;
                     shift_reg <= tx_data;
                 end
