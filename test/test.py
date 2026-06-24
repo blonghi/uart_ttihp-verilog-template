@@ -4,12 +4,12 @@ from cocotb.triggers import ClockCycles, RisingEdge
 
 
 CLK_PERIOD_NS = 20
-TX_BAUD_CYCLES = 5208
+TX_BAUD_CYCLES = 5208 # 5209 ? 
 RX_BAUD_CYCLES = 326
 
 
 # ---------------------------------------------------------------------------
-# Infrastructure helpers
+# Infrastructure helpers <- AI gened code ?
 # ---------------------------------------------------------------------------
 
 async def setup_clock(dut):
