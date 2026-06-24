@@ -16,10 +16,10 @@ module receiver (
     reg [7:0] shift_reg; // temp storage of byte
 
     typedef enum reg [1:0] {
-        IDLE = 2'b00,
+        IDLE  = 2'b00,
         START = 2'b01,
-        DATA = 2'b10,
-        STOP = 2'b11
+        DATA  = 2'b10,
+        STOP  = 2'b11
     } state_t;
 
     state_t state;
@@ -27,7 +27,7 @@ module receiver (
     always@(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             state <= IDLE;
-            rx_valid <= 0;
+            rx_valid <= 0;// Not an issue here but default behavior when the type is unspecified is to infer a 32 bit wide value. If you data is say 33 bits wide this means your 33rd bit might not be reset so it is good practice to take the habit of explicitly specifying the types.
             rx_data <= 0;
             shift_reg <= 0;
             rx_sync <= 0;
@@ -55,14 +55,15 @@ module receiver (
 
             DATA : begin
                 if  (rx_enb) begin
-                    shift_reg[bit_index] <= rx;
+                    shift_reg[bit_index] <= rx;// shifting data in would be cheaper, with this syntax you are infering a mux, which is more expensive in logic. This isn't an issue for this design since it is small but if you start building bigger designs and start running out of area it is a good thing to keep in mind. 
                     
-                    if (bit_index == 7) 
+                    if (bit_index == 7) // technically speaking UART allows 5,6,7 or 8 data bits, here you are chosing to hard code it at 7, not a bug but a design assumption to keep in mind when setting up your uart interface and should be specified in the doc 
                         state <= STOP; 
                     else
                         bit_index <= bit_index + 1;
                 end
             end
+			// same comment for the partiy bit, it's optional so it's fine but do mention it in the doc as an assumption
 
             STOP : begin 
                 if (rx_enb) begin

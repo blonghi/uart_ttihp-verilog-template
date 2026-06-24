@@ -5,6 +5,12 @@
 
 `default_nettype none
 
+/* 
+Rename file to match the module name. 
+Some tools implity expect the module name and the file name to match exactly 
+so for portability and to match your future colleges expectations it is a 
+good practice to adopte. 
+*/ 
 module tt_um_uart (
     input  wire [7:0] ui_in,    // Dedicated inputs
     output wire [7:0] uo_out,   // Dedicated outputs
@@ -34,7 +40,7 @@ module tt_um_uart (
   // List all unused inputs to prevent warnings
   wire _unused = &{uio_in[7:1], uio_out, uio_oe, ena};
 
-  assign uio_out = 0;
+  assign uio_out = 0; // good, not tieing the outputs can issues, see tie cells in the implem if you want to learn more
   assign uio_oe = 0;
 
   baud_rate_gen u_baudrate_generator (
@@ -48,6 +54,7 @@ module tt_um_uart (
     .tx_enb(tx_enb)
   );
 
+	/* Setting uart in loopback mode */ 
     transmitter u_transmitter (
     //inputs 
     .clk(clk), 
