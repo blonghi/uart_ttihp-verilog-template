@@ -32,10 +32,10 @@ module tt_um_uart (
 
   wire rx_enb;
   wire rx_sync;
-  wire [7:0] rx_data;
+  wire [7:0] rx_data;// lint - unused
   wire rx_valid;
 
-  reg [7:0] temp;
+  reg [7:0] temp;// same
 
   // List all unused inputs to prevent warnings
   wire _unused = &{uio_in[7:1], uio_out, uio_oe, ena};

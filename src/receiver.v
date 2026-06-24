@@ -24,7 +24,7 @@ module receiver (
 
     state_t state;
 
-    always@(posedge clk or negedge rst_n) begin
+    always@(posedge clk or negedge rst_n) begin // why are you using an async rst ? 
         if (!rst_n) begin
             state <= IDLE;
             rx_valid <= 0;// Not an issue here but default behavior when the type is unspecified is to infer a 32 bit wide value. If you data is say 33 bits wide this means your 33rd bit might not be reset so it is good practice to take the habit of explicitly specifying the types.
