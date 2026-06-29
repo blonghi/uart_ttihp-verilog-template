@@ -13,6 +13,7 @@ module transmitter(
 
     reg [2:0] bit_index; // track bit w each baud tick
     reg [7:0] shift_reg; // temp storage of byte
+    reg stop_phase;
 
     typedef enum reg [1:0] {
         IDLE = 2'b00,
@@ -29,6 +30,7 @@ module transmitter(
             tx <= 1;
             bit_index <= 0;
             shift_reg <= 0;
+            stop_phase <= 0;
 
         end else begin
 
@@ -37,6 +39,7 @@ module transmitter(
             IDLE : begin
                 tx <= 1;
                 bit_index <= 0;
+                stop_phase <= 0;
 
                 if (wr_enb) begin
                     state <= START;
@@ -48,6 +51,8 @@ module transmitter(
                 tx <= 0; 
 
                 if (tx_enb) begin
+                    tx <= shift_reg[0];
+                    bit_index <= 1;
                     state <= DATA;
                 end
             end
@@ -64,10 +69,15 @@ module transmitter(
             end 
 
             STOP : begin 
-                tx <= 1;
-
-                if (tx_enb)
-                    state <= IDLE;
+                if (tx_enb) begin
+                    if (!stop_phase) begin
+                        tx <= 1;
+                        stop_phase <= 1;
+                    end else begin
+                        state <= IDLE;
+                        stop_phase <= 0;
+                    end
+                end
             end
 
             endcase

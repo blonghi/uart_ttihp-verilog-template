@@ -12,8 +12,9 @@ module receiver (
     output reg rx_valid
 );
 
-    reg [2:0] bit_index; // track bit w each baud tick
+    reg [3:0] bit_index; // track bit w each baud tick
     reg [7:0] shift_reg; // temp storage of byte
+    reg [3:0] rx_counter; // track baud ticks
 
     typedef enum reg [1:0] {
         IDLE = 2'b00,
@@ -31,13 +32,18 @@ module receiver (
             rx_data <= 0;
             shift_reg <= 0;
             rx_sync <= 0;
+            bit_index <= 0;
+            rx_counter <= 0; 
+
 
         end else begin
 
             case (state)
 
             IDLE : begin
-                rx_valid <= 0;
+                shift_reg <= 0;
+                rx_valid <=0;
+                
 
                 if (rx == 0) begin
                     rx_sync <= 1;
@@ -48,28 +54,45 @@ module receiver (
             START : begin
                 bit_index <= 0;
                 rx_sync <= 0;
+                rx_counter <= 0; 
+
 
                 if (rx_enb) 
                     state <= DATA;
+
             end
 
             DATA : begin
-                if  (rx_enb) begin
-                    shift_reg[bit_index] <= rx;
-                    
-                    if (bit_index == 7) 
-                        state <= STOP; 
-                    else
-                        bit_index <= bit_index + 1;
+                
+                if (rx_enb) begin
+                    if (bit_index < 9) begin
+                        rx_counter <= rx_counter + 1; 
+
+
+                        if (rx_counter == 8 & bit_index > 0)  begin
+                            shift_reg[bit_index - 1] <= rx;
+                        end
+
+                        if (bit_index == 8) begin
+                            shift_reg[bit_index -1] <= rx;
+                            rx_valid <= 0;
+                            state <= STOP; 
+                        end
+
+
+                        if (rx_counter == 15) begin
+                            rx_counter <= 0; 
+                            bit_index <= bit_index + 1;
+                        end
+                    end
+
                 end
             end
 
             STOP : begin 
                 if (rx_enb) begin
-                    if (rx == 1'b1) begin
-                        rx_data <= shift_reg;
-                        rx_valid <= 1;
-                    end
+                    rx_data <= shift_reg;
+                    rx_valid <= 1;
                     state <= IDLE;
                 end
             end

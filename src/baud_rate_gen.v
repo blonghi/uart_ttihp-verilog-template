@@ -8,13 +8,13 @@
     output wire rx_enb);
 
     reg [12:0] tx_counter;
-    reg [9:0] rx_counter;
+    reg [12:0] rx_counter;
 
     always@(posedge clk)
         begin 
             if (!rst_n || rx_sync)
                 rx_counter <= 0;
-            else if (rx_counter == 325)
+            else if (rx_counter == 326)
                 rx_counter <= 0;
             else 
                 rx_counter <= rx_counter + 1'b1;
