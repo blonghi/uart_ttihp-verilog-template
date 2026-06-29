@@ -74,7 +74,8 @@ module tt_um_uart (
   );
 
 
-  assign uo_out[7:1] = 0;
+assign uo_out[1] = rx_valid;
+assign uo_out[7:2] = 0;
 
 
 

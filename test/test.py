@@ -54,7 +54,12 @@ def get_tx_pin(dut):
 
 
 def get_rx_data(dut):
-    return int(dut.dut.rx_data.value)
+    return int(dut.rx_data.value)
+
+
+def get_rx_valid(dut):
+    """Read rx_valid from top-level output bit uo_out[1]."""
+    return (int(dut.uo_out.value) >> 1) & 0x1
 
 
 def bits_lsb_first(byte_val):
@@ -87,16 +92,16 @@ async def send_uart_frame_on_ui0(dut, byte_val):
 
 async def wait_for_rx_valid(dut, timeout_cycles=200000):
     for _ in range(timeout_cycles):
-        if int(dut.dut.rx_valid.value) == 1:
+        if get_rx_valid(dut) == 1:
             return
         await RisingEdge(dut.clk)
     assert False, "Timeout waiting for rx_valid"
 
 
 async def wait_for_rx_valid_rise(dut, timeout_cycles=200000):
-    prev = int(dut.dut.rx_valid.value)
+    prev = get_rx_valid(dut)
     for _ in range(timeout_cycles):
-        cur = int(dut.dut.rx_valid.value)
+        cur = get_rx_valid(dut)
         if prev == 0 and cur == 1:
             return
         prev = cur
@@ -177,7 +182,7 @@ async def test_rx_idle_line_does_not_assert_valid(dut):
     await reset_dut(dut)
     set_rx_pin(dut, 1)
     for _ in range(RX_BAUD_CYCLES * 20):
-        assert int(dut.dut.rx_valid.value) == 0, \
+        assert get_rx_valid(dut) == 0, \
             "rx_valid must stay low when RX line is continuously idle"
         await RisingEdge(dut.clk)
 
@@ -189,7 +194,7 @@ async def test_rx_start_bit_required_for_frame(dut):
     await reset_dut(dut)
     set_rx_pin(dut, 1)
     await ClockCycles(dut.clk, RX_BAUD_CYCLES * 4)
-    assert int(dut.dut.rx_valid.value) == 0, \
+    assert get_rx_valid(dut) == 0, \
         "rx_valid must not assert without a low start bit"
 
 
@@ -212,7 +217,7 @@ async def test_rx_valid_deasserts_after_frame(dut):
     await send_uart_frame_on_ui0(dut, 0x5A)
     await t
     await ClockCycles(dut.clk, RX_BAUD_CYCLES * 3)
-    assert int(dut.dut.rx_valid.value) == 0, \
+    assert get_rx_valid(dut) == 0, \
         "rx_valid must deassert after frame completion"
 
 
@@ -228,7 +233,7 @@ async def test_rx_valid_not_asserted_before_stop_bit(dut):
     for i in range(8):
         set_rx_pin(dut, (0x55 >> i) & 0x1)
         await ClockCycles(dut.clk, RX_BAUD_CYCLES)
-    assert int(dut.dut.rx_valid.value) == 0, \
+    assert get_rx_valid(dut) == 0, \
         "rx_valid must not assert before the stop bit is driven"
     t = cocotb.start_soon(wait_for_rx_valid(dut))
     set_rx_pin(dut, 1)  # stop bit
@@ -319,7 +324,7 @@ async def test_rx_data_stable_while_valid_asserted(dut):
     captured = get_rx_data(dut)
     assert captured == 0x71, f"Initial rx_data mismatch: expected 0x71, got {captured:#04x}"
     for _ in range(RX_BAUD_CYCLES):
-        if int(dut.dut.rx_valid.value) == 0:
+        if get_rx_valid(dut) == 0:
             break
         assert get_rx_data(dut) == captured, \
             "rx_data changed while rx_valid was still asserted"

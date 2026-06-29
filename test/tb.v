@@ -22,6 +22,8 @@ module tb ();
   wire [7:0] uo_out;
   wire [7:0] uio_out;
   wire [7:0] uio_oe;
+  wire rx_valid;
+  wire [7:0] rx_data;
 
   // Replace tt_um_example with your module name:
   tt_um_uart dut (
@@ -34,5 +36,8 @@ module tb ();
       .clk    (clk),      // clock
       .rst_n  (rst_n)     // not reset
   );
+
+  assign rx_valid = dut.u_receiver.rx_valid;
+  assign rx_data = dut.u_receiver.rx_data;
 
 endmodule
