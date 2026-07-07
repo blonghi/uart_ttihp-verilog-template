@@ -37,7 +37,5 @@ module tb ();
       .rst_n  (rst_n)     // not reset
   );
 
-  assign rx_valid = dut.u_receiver.rx_valid;
-  assign rx_data = dut.u_receiver.rx_data;
 
 endmodule
