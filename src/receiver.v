@@ -15,6 +15,7 @@ module receiver (
     reg [3:0] bit_index; // track bit w each baud tick
     reg [7:0] shift_reg; // temp storage of byte
     reg [3:0] rx_counter; // track baud ticks
+    reg rx_prev; // keeping track of when the start bit edge falls
 
     typedef enum reg [1:0] {
         IDLE = 2'b00,
@@ -24,6 +25,7 @@ module receiver (
     } state_t;
 
     state_t state;
+    wire falling_edge = (rx_prev == 1'b1) && (rx == 1'b0);
 
     always@(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
@@ -34,9 +36,12 @@ module receiver (
             rx_sync <= 0;
             bit_index <= 0;
             rx_counter <= 0; 
+            rx_prev <= 1'b1; 
+
 
 
         end else begin
+            rx_prev <= rx;
 
             case (state)
 
@@ -45,7 +50,7 @@ module receiver (
                 rx_valid <=0;
                 
 
-                if (rx == 0) begin
+                if (falling_edge) begin
                     rx_sync <= 1;
                     state <= START;
                 end
@@ -90,7 +95,7 @@ module receiver (
             end
 
             STOP : begin 
-                if (rx_enb) begin
+                if (rx && rx_enb) begin
                     rx_data <= shift_reg;
                     rx_valid <= 1;
                     state <= IDLE;
