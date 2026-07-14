@@ -22,8 +22,6 @@ module tb ();
   wire [7:0] uo_out;
   wire [7:0] uio_out;
   wire [7:0] uio_oe;
-  wire rx_valid;
-  wire [7:0] rx_data;
 
   // Replace tt_um_example with your module name:
   tt_um_uart dut (
