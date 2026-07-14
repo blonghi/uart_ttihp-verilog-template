@@ -34,8 +34,8 @@ module tt_um_uart (
   // List all unused inputs to prevent warnings
   wire _unused = &{uio_in[7:1], uio_out, uio_oe, ena};
 
-  assign uio_out = 0;
-  assign uio_oe = 0;
+  assign uio_out = rx_data;
+  assign uio_oe = 8'hFF;
 
   baud_rate_gen u_baudrate_generator (
     //inputs
