@@ -20,8 +20,8 @@ async def setup_clock(dut):
 
 async def reset_dut(dut):
     dut.ena.value = 1
-    dut.uio_in.value = 0
-    dut.ui_in.value = 1
+    dut.uio_in.value = 0b10 
+    dut.ui_in.value = 0
     dut.rst_n.value = 0
     await ClockCycles(dut.clk, 5)
     dut.rst_n.value = 1
@@ -36,12 +36,11 @@ def set_rx_pin(dut, bit_val):
 
 def set_wr_enb_pin(dut, bit_val):
     cur = int(dut.uio_in.value)
-    cur = (cur & ~0x1) | (bit_val & 0x1)
+    cur = (cur & ~0x2) | ((bit_val & 0x1) << 1)
     dut.uio_in.value = cur
 
 
 async def issue_tx_write(dut, byte_val):
-    assert (byte_val & 1) == 1, "TX byte must have LSB=1 (ui_in[0] RX idle)"
     dut.ui_in.value = byte_val
     set_wr_enb_pin(dut, 1)
     await RisingEdge(dut.clk)
