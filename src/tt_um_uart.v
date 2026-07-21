@@ -65,7 +65,7 @@ module tt_um_uart (
     .clk(clk), 
     .rst_n(rst_n), 
     .rx_enb(rx_enb),
-    .rx(ui_in[0]),
+    .rx(uio_in[1]),
 
     //outputs
     .rx_sync(rx_sync),
