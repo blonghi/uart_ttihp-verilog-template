@@ -29,14 +29,14 @@ async def reset_dut(dut):
 
 
 def set_rx_pin(dut, bit_val):
-    cur = int(dut.ui_in.value)
-    cur = (cur & ~0x1) | (bit_val & 0x1)
-    dut.ui_in.value = cur
+    cur = int(dut.uio_in.value)
+    cur = (cur & ~0x2) | ((bit_val & 0x1) << 1)
+    dut.uio_in.value = cur
 
 
 def set_wr_enb_pin(dut, bit_val):
     cur = int(dut.uio_in.value)
-    cur = (cur & ~0x2) | ((bit_val & 0x1) << 1)
+    cur = (cur & ~0x1) | (bit_val & 0x1)
     dut.uio_in.value = cur
 
 
